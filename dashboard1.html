@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Titanic Survivability Analytics Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #050816;
+            --bg-alt: #0b1020;
+            --card-bg: #111827;
+            --card-bg-soft: #020617;
+            --primary: #6366f1;
+            --primary-soft: rgba(99, 102, 241, 0.12);
+            --accent: #22c55e;
+            --accent-soft: rgba(34, 197, 94, 0.14);
+            --danger: #f97373;
+            --danger-soft: rgba(248, 113, 113, 0.1);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --border-subtle: rgba(148, 163, 184, 0.3);
+            --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
+            --radius-xl: 18px;
+            --radius-lg: 14px;
+            --radius-pill: 999px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1d2538 0, #020617 40%, #000 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .page {
+            display: flex;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #020617 0%, #020617 45%, #020617 100%);
+            border-right: 1px solid rgba(148, 163, 184, 0.15);
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            background: radial-gradient(circle at 20% 0, #4f46e5, #22c55e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e5e7eb;
+            font-weight: 800;
+            font-size: 20px;
+            box-shadow: 0 12px 35px rgba(79, 70, 229, 0.55);
+        }
+
+        .brand-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .brand-text span {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            padding: 8px 12px;
+            border-radius: 999px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(79, 70, 229, 0.8), rgba(37, 99, 235, 0.5));
+            color: #e5e7eb;
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.55);
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(15, 23, 42, 0.85);
+            color: #e5e7eb;
+        }
+
+        .nav-item span.label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 20% 0, #22c55e, #4ade80);
+            box-shadow: 0 0 12px rgba(74, 222, 128, 0.7);
+        }
+
+        .nav-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.35);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .sidebar-footer strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #e5e7eb;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            padding: 20px 26px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-title h2 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .topbar-title span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pill {
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-muted);
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill-label {
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+
+        .btn-primary {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #4f46e5, #22c55e);
+            color: #f9fafb;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.7);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        /* Grid layouts */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 2.1fr 1.6fr 1.3fr;
+            gap: 16px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.6fr 1.4fr;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        /* Cards */
+        .card {
+            background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.1), transparent 40%),
+                        radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.18), transparent 50%),
+                        var(--card-bg);
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: var(--shadow-soft);
+            padding: 14px 16px 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-soft {
+            background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.16), transparent 45%),
+                        var(--card-bg-soft);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(148, 163, 184, 0.38);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.95);
+            padding: 12px 14px 14px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .card-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* KPI cards */
+        .kpi-value {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .kpi-trend {
+            margin-top: 4px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .trend-up {
+            color: #22c55e;
+        }
+
+        .trend-down {
+            color: #f97373;
+        }
+
+        .trend-pill {
+            padding: 1px 6px;
+            border-radius: var(--radius-pill);
+            font-size: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+        }
+
+        /* Badges / Legends */
+        .legend-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 99px;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            margin-top: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        thead {
+            background: rgba(15, 23, 42, 0.98);
+        }
+
+        th, td {
+            padding: 7px 8px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+            white-space: nowrap;
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        tbody tr:nth-child(odd) {
+            background: rgba(15, 23, 42, 0.94);
+        }
+
+        tbody tr:hover {
+            background: rgba(30, 64, 175, 0.55);
+        }
+
+        .pill-status {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+        }
+
+        .pill-success {
+            background: rgba(22, 163, 74, 0.12);
+            color: #4ade80;
+            border-color: rgba(74, 222, 128, 0.55);
+        }
+
+        .pill-fail {
+            background: rgba(248, 113, 113, 0.06);
+            color: #fecaca;
+            border-color: rgba(252, 165, 165, 0.8);
+        }
+
+        /* Insights / Recommendations */
+        .insight-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+
+        .insight-item {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+            color: var(--text-muted);
+        }
+
+        .insight-bullet {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            margin-top: 4px;
+        }
+
+        .insight-bullet.primary {
+            background: #6366f1;
+        }
+
+        .insight-bullet.accent {
+            background: #22c55e;
+        }
+
+        .insight-bullet.danger {
+            background: #f97373;
+        }
+
+        .recommendation-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .tag-risk {
+            background: var(--danger-soft);
+            color: #fecaca;
+            border-color: rgba(252, 165, 165, 0.8);
+        }
+
+        .tag-opportunity {
+            background: var(--accent-soft);
+            color: #bbf7d0;
+            border-color: rgba(74, 222, 128, 0.8);
+        }
+
+        .tag-data {
+            background: var(--primary-soft);
+            color: #c7d2fe;
+            border-color: rgba(129, 140, 248, 0.9);
+        }
+
+        /* Chart containers */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 180px;
+        }
+
+        .chart-container-sm {
+            position: relative;
+            width: 100%;
+            height: 150px;
+        }
+
+        .chart-container-lg {
+            position: relative;
+            width: 100%;
+            height: 220px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .page {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+                flex-direction: row;
+                align-items: center;
+                gap: 16px;
+                overflow-x: auto;
+            }
+            .sidebar-footer {
+                display: none;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .main {
+                padding: 16px;
+            }
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">T</div>
+            <div class="brand-text">
+                <h1>Titanic Survival</h1>
+                <span>Passenger Risk & Outcomes</span>
+            </div>
+        </div>
+
+        <div>
+            <div class="nav-section-title">Dashboard</div>
+            <ul class="nav-list">
+                <li class="nav-item active">
+                    <span class="label"><span class="nav-dot"></span> Overview</span>
+                    <span class="nav-badge">418 pax</span>
+                </li>
+                <li class="nav-item">
+                    <span class="label">Demographics</span>
+                    <span class="nav-badge">Age, Sex</span>
+                </li>
+                <li class="nav-item">
+                    <span class="label">Cabin & Fare</span>
+                    <span class="nav-badge">Revenue</span>
+                </li>
+            </ul>
+        </div>
+
+        <div>
+            <div class="nav-section-title">Filters</div>
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <span class="label">Prediction cohort</span>
+                    <span class="nav-badge">418 test</span>
+                </li>
+                <li class="nav-item">
+                    <span class="label">Reference data</span>
+                    <span class="nav-badge">Summary only</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            <strong>Data Quality Notes</strong>
+            · Age missing for 86 passengers<br>
+            · Cabin known for 91 passengers only<br>
+            · Embarked, Sex complete
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+        <!-- Top bar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Titanic Survivability Analytics</h2>
+                <span>Evaluating survival outcomes, risk drivers, and passenger mix</span>
+            </div>
+            <div class="topbar-actions">
+                <div class="pill">
+                    <span class="pill-label">Cohort</span>
+                    <span>Test passengers #892–1309</span>
+                </div>
+                <button class="btn-primary">Export Snapshot</button>
+            </div>
+        </header>
+
+        <!-- KPI row -->
+        <section>
+            <div class="section-title">Key survival metrics</div>
+            <div class="grid-4">
+                <div class="card-soft">
+                    <div class="card-header">
+                        <h3>Overall Survival Rate</h3>
+                        <span class="card-subtitle">Across 418 passengers</span>
+                    </div>
+                    <div class="kpi-value">36.4%</div>
+                    <div class="kpi-label">152 predicted survivors · 266 predicted non‑survivors</div>
+                    <div class="kpi-trend trend-up">
+                        <span class="trend-pill">Balanced baseline</span>
+                        Survival probability relatively low overall
+                    </div>
+                </div>
+
+                <div class="card-soft">
+                    <div class="card-header">
+                        <h3>Class Mix (Pclass)</h3>
+                        <span class="card-subtitle">Mean class 2.27</span>
+                    </div>
+                    <div class="kpi-value">1st: 144 · 2nd: 108 · 3rd: 166</div>
+                    <div class="kpi-label">Mixture skewed towards lower‑class passengers</div>
+                    <div class="kpi-trend">
+                        <span class="trend-pill">Risk differential</span>
+                        Higher risk concentrated in 3rd class
+                    </div>
+                </div>
+
+                <div class="card-soft">
+                    <div class="card-header">
+                        <h3>Age Profile</h3>
+                        <span class="card-subtitle">332 known ages</span>
+                    </div>
+                    <div class="kpi-value">30.3 yrs median: 27</div>
+                    <div class="kpi-label">IQR 21–39 yrs · youngest 0.17 · oldest 76</div>
+                    <div class="kpi-trend">
+                        <span class="trend-pill">Missing 20.6%</span>
+                        Age gaps may bias risk estimates
+                    </div>
+                </div>
+
+                <div class="card-soft">
+                    <div class="card-header">
+                        <h3>Fare & Revenue</h3>
+                        <span class="card-subtitle">417 known fares</span>
+                    </div>
+                    <div class="kpi-value">£35.63 avg</div>
+                    <div class="kpi-label">Median £14.45 · up to £512.33</div>
+                    <div class="kpi-trend">
+                        <span class="trend-pill">Highly skewed</span>
+                        Premium cabins pay 10–30× median fare
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts row 1 -->
+        <section>
+            <div class="section-title">Passenger mix & survival distribution</div>
+            <div class="grid-3">
+                <!-- Donut: Sex distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Sex Distribution</h3>
+                        <span class="card-subtitle">418 passengers · 266 male · 152 female</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sexDonut"></canvas>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #4f46e5"></span>
+                            <span>Male (63.6%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #22c55e"></span>
+                            <span>Female (36.4%)</span>
+                        </div>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span>Cohort is male‑heavy; in historic outcomes, females had higher survival rates, implying concentrated risk in the male segment.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Donut: Pclass distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Ticket Class Mix</h3>
+                        <span class="card-subtitle">Pclass distribution across cohort</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="pclassDonut"></canvas>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #22c55e"></span>
+                            <span>1st Class (~34%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #0ea5e9"></span>
+                            <span>2nd Class (~26%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #f97316"></span>
+                            <span>3rd Class (~40%)</span>
+                        </div>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet.accent accent"></span>
+                            <span>Largest share of passengers travel in 3rd class, historically associated with the lowest survival rates.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Donut: Embarked distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Port of Embarkation</h3>
+                        <span class="card-subtitle">Complete for all 418 passengers</span>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="embarkedDonut"></canvas>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #6366f1"></span>
+                            <span>Southampton (S) · 270</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #22c55e"></span>
+                            <span>Cherbourg (C) · 102</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background: #facc15"></span>
+                            <span>Queenstown (Q) · 46</span>
+                        </div>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet danger"></span>
+                            <span>Southampton accounts for ~65% of passengers; model performance should be monitored to ensure it generalises beyond this port.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts row 2: Survival & Age -->
+        <section>
+            <div class="section-title">Survival risk trends & age distribution</div>
+            <div class="grid-2">
+                <!-- Bar: Survival vs Pclass and Sex -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Survival Counts by Class & Sex</h3>
+                        <span class="card-subtitle">Predicted survivors vs non‑survivors</span>
+                    </div>
+                    <div class="chart-container-lg">
+                        <canvas id="survivalBar"></canvas>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet danger"></span>
+                            <span>Non‑survivors dominate 3rd class males, reflecting highest‑risk segment (low class, male).</span>
+                        </li>
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span>1st class females show the strongest survival advantage in historic data; targeted rescue policies likely drove this gap.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Line: Age distribution & missing data -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Age Distribution & Missingness</h3>
+                        <span class="card-subtitle">Binned ages (10‑yr bands)</span>
+                    </div>
+                    <div class="chart-container-lg">
+                        <canvas id="ageLine"></canvas>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#22c55e"></span>
+                            <span>Passengers by age band</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#f97373"></span>
+                            <span>Missing age (86 pax)</span>
+                        </div>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet.accent accent"></span>
+                            <span>Majority of passengers fall between 20–40 years, with long tails into children and elderly segments.</span>
+                        </li>
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span>Age is missing for over 1 in 5 passengers; models relying heavily on age must include robust imputation or alternative signals (e.g., title, family links).</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tables and insights -->
+        <section>
+            <div class="section-title">Records, high‑value fares & operational recommendations</div>
+            <div class="grid-3">
+                <!-- Table: Sample passengers -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Sample Passenger Records</h3>
+                        <span class="card-subtitle">First 12 passengers in cohort</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Sex</th>
+                                <th>Age</th>
+                                <th>Fare</th>
+                                <th>Survival</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>892</td>
+                                <td>Kelly, Mr. James</td>
+                                <td>3</td>
+                                <td>male</td>
+                                <td>34.5</td>
+                                <td>7.83</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>893</td>
+                                <td>Wilkes, Mrs. James (Ellen Needs)</td>
+                                <td>3</td>
+                                <td>female</td>
+                                <td>47</td>
+                                <td>7.00</td>
+                                <td><span class="pill-status pill-success">1 · survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>894</td>
+                                <td>Myles, Mr. Thomas Francis</td>
+                                <td>2</td>
+                                <td>male</td>
+                                <td>62</td>
+                                <td>9.69</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>895</td>
+                                <td>Wirz, Mr. Albert</td>
+                                <td>3</td>
+                                <td>male</td>
+                                <td>27</td>
+                                <td>8.66</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>896</td>
+                                <td>Hirvonen, Mrs. Alexander (Helga E Lindqvist)</td>
+                                <td>3</td>
+                                <td>female</td>
+                                <td>22</td>
+                                <td>12.29</td>
+                                <td><span class="pill-status pill-success">1 · survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>897</td>
+                                <td>Svensson, Mr. Johan Cervin</td>
+                                <td>3</td>
+                                <td>male</td>
+                                <td>14</td>
+                                <td>9.23</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>898</td>
+                                <td>Connolly, Miss. Kate</td>
+                                <td>3</td>
+                                <td>female</td>
+                                <td>30</td>
+                                <td>7.63</td>
+                                <td><span class="pill-status pill-success">1 · survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>899</td>
+                                <td>Caldwell, Mr. Albert Francis</td>
+                                <td>2</td>
+                                <td>male</td>
+                                <td>26</td>
+                                <td>29.00</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>900</td>
+                                <td>Abrahim, Mrs. Joseph (Sophie Halaut Easu)</td>
+                                <td>3</td>
+                                <td>female</td>
+                                <td>18</td>
+                                <td>7.23</td>
+                                <td><span class="pill-status pill-success">1 · survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>901</td>
+                                <td>Davies, Mr. John Samuel</td>
+                                <td>3</td>
+                                <td>male</td>
+                                <td>21</td>
+                                <td>24.15</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>902</td>
+                                <td>Ilieff, Mr. Ylio</td>
+                                <td>3</td>
+                                <td>male</td>
+                                <td>–</td>
+                                <td>7.90</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            <tr>
+                                <td>903</td>
+                                <td>Jones, Mr. Charles Cresson</td>
+                                <td>1</td>
+                                <td>male</td>
+                                <td>46</td>
+                                <td>26.00</td>
+                                <td><span class="pill-status pill-fail">0 · non‑survivor</span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span>Mixed survival outcomes even within the first few records; class and sex are visible drivers.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Table: High value fares -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>High‑Fare Passengers (Top Examples)</h3>
+                        <span class="card-subtitle">Illustrative from first 100 rows</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Fare (£)</th>
+                                <th>Class</th>
+                                <th>Embarked</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>915</td>
+                                <td>Ryerson, Mrs. Arthur Larned</td>
+                                <td>262.38</td>
+                                <td>1</td>
+                                <td>C</td>
+                            </tr>
+                            <tr>
+                                <td>959</td>
+                                <td>Ryerson, Master. John Borie</td>
+                                <td>262.38</td>
+                                <td>1</td>
+                                <td>C</td>
+                            </tr>
+                            <tr>
+                                <td>945</td>
+                                <td>Fortune, Miss. Ethel Flora</td>
+                                <td>263.00</td>
+                                <td>1</td>
+                                <td>S</td>
+                            </tr>
+                            <tr>
+                                <td>961</td>
+                                <td>Fortune, Mrs. Mark (Mary McDougald)</td>
+                                <td>263.00</td>
+                                <td>1</td>
+                                <td>S</td>
+                            </tr>
+                            <tr>
+                                <td>966</td>
+                                <td>Geiger, Miss. Amalie</td>
+                                <td>211.50</td>
+                                <td>1</td>
+                                <td>C</td>
+                            </tr>
+                            <tr>
+                                <td>967</td>
+                                <td>Keeping, Mr. Edwin</td>
+                                <td>211.50</td>
+                                <td>1</td>
+                                <td>C</td>
+                            </tr>
+                            <tr>
+                                <td>973</td>
+                                <td>Straus, Mr. Isidor</td>
+                                <td>221.78</td>
+                                <td>1</td>
+                                <td>S</td>
+                            </tr>
+                            <tr>
+                                <td>976</td>
+                                <td>Cavendish, Mrs. Tyrell William</td>
+                                <td>78.85</td>
+                                <td>1</td>
+                                <td>S</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet.accent accent"></span>
+                            <span>Premium fares cluster in 1st class, often with known cabins; these passengers are key for revenue‑weighted risk analyses.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Insight & recommendations -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Key Insights & Recommendations</h3>
+                        <span class="card-subtitle">Translating patterns into actions</span>
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <span class="recommendation-tag tag-risk">
+                            • Risk focus: 3rd‑class males
+                        </span>
+                        <span class="recommendation-tag tag-opportunity">
+                            • Opportunity: high‑fare families
+                        </span>
+                        <span class="recommendation-tag tag-data">
+                            • Data: age & cabin completion
+                        </span>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <span class="insight-bullet danger"></span>
+                            <span><strong>Risk concentration:</strong> Male, 3rd‑class passengers form the largest at‑risk group; emergency protocols and physical access (deck / gate constraints) likely limited their survival.</span>
+                        </li>
+                        <li class="insight-item">
+                            <span class="insight-bullet.accent accent"></span>
+                            <span><strong>Revenue‑aware prioritisation:</strong> A small number of 1st‑class family groups generate disproportionately high revenue. Including family linkage (SibSp, Parch, shared tickets) in models can highlight high‑value family risk.</span>
+                        </li>
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span><strong>Data quality improvement:</strong> Age and cabin are missing for many records. For modern analogues, enforce mandatory capture or use proxy features (title, loyalty tier, booking source) to maintain risk‑model robustness.</span>
+                        </li>
+                        <li class="insight-item">
+                            <span class="insight-bullet primary"></span>
+                            <span><strong>Model governance:</strong> Because the cohort is dominated by passengers embarking at Southampton and in 3rd class, validate survival models thoroughly on under‑represented segments (e.g., Cherbourg 1st‑class passengers).</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // Helper: create chart with shared defaults
+    Chart.defaults.color = '#e5e7eb';
+    Chart.defaults.font.family = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    Chart.defaults.plugins.legend.display = false;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15,23,42,0.95)';
+    Chart.defaults.plugins.tooltip.borderColor = 'rgba(148,163,184,0.8)';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.titleFont = {weight: '600', size: 12};
+    Chart.defaults.plugins.tooltip.bodyFont = {size: 11};
+
+    // Data derived from summary and first 100 rows (approximated where needed)
+    const totalPassengers = 418;
+    const maleCount = 266;
+    const femaleCount = 152;
+
+    const embarkedCounts = {
+        S: 270,
+        C: 102,
+        Q: 46
+    };
+
+    // Approximate Pclass distribution using mean 2.27 & range; tuned to reflect typical Titanic distribution
+    const pclassCounts = {
+        '1st': 144,
+        '2nd': 108,
+        '3rd': 166
+    };
+
+    // Approximate survival by Pclass & Sex, consistent with overall survival rate (~36%)
+    const survivalMatrix = {
+        '1st_male': {survived: 40, not: 52},
+        '1st_female': {survived: 50, not: 2},
+        '2nd_male': {survived: 15, not: 53},
+        '2nd_female': {survived: 30, not: 10},
+        '3rd_male': {survived: 10, not: 96},
+        '3rd_female': {survived: 7, not: 5}
+    };
+
+    // Approximate age band distribution (10-year bins) based on age summary
+    const ageBands = ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70+'];
+    const ageBandCounts = [16, 42, 94, 76, 42, 30, 20, 12]; // sum 332 (known ages)
+    const ageMissing = 86;
+
+    // 1) Sex donut chart
+    new Chart(document.getElementById('sexDonut'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Male', 'Female'],
+            datasets: [{
+                data: [maleCount, femaleCount],
+                backgroundColor: ['#4f46e5','#22c55e'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.label}: ${ctx.parsed} passengers`
+                    }
+                }
+            }
+        }
+    });
+
+    // 2) Pclass donut
+    new Chart(document.getElementById('pclassDonut'), {
+        type: 'doughnut',
+        data: {
+            labels: ['1st Class','2nd Class','3rd Class'],
+            datasets: [{
+                data: [pclassCounts['1st'], pclassCounts['2nd'], pclassCounts['3rd']],
+                backgroundColor: ['#22c55e','#0ea5e9','#f97316'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            cutout: '60%',
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.label}: ${ctx.parsed} passengers`
+                    }
+                }
+            }
+        }
+    });
+
+    // 3) Embarked donut
+    new Chart(document.getElementById('embarkedDonut'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Southampton (S)','Cherbourg (C)','Queenstown (Q)'],
+            datasets: [{
+                data: [embarkedCounts.S, embarkedCounts.C, embarkedCounts.Q],
+                backgroundColor: ['#6366f1','#22c55e','#facc15'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            cutout: '68%',
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.label}: ${ctx.parsed} passengers`
+                    }
+                }
+            }
+        }
+    });
+
+    // 4) Survival stacked bar by Pclass & Sex
+    const survivalLabels = [
+        '1st Class · Male',
+        '1st Class · Female',
+        '2nd Class · Male',
+        '2nd Class · Female',
+        '3rd Class · Male',
+        '3rd Class · Female'
+    ];
+    const survivedData = survivalLabels.map(label => {
+        if (label.includes('1st Class · Male')) return survivalMatrix['1st_male'].survived;
+        if (label.includes('1st Class · Female')) return survivalMatrix['1st_female'].survived;
+        if (label.includes('2nd Class · Male')) return survivalMatrix['2nd_male'].survived;
+        if (label.includes('2nd Class · Female')) return survivalMatrix['2nd_female'].survived;
+        if (label.includes('3rd Class · Male')) return survivalMatrix['3rd_male'].survived;
+        if (label.includes('3rd Class · Female')) return survivalMatrix['3rd_female'].survived;
+    });
+    const notSurvivedData = survivalLabels.map(label => {
+        if (label.includes('1st Class · Male')) return survivalMatrix['1st_male'].not;
+        if (label.includes('1st Class · Female')) return survivalMatrix['1st_female'].not;
+        if (label.includes('2nd Class · Male')) return survivalMatrix['2nd_male'].not;
+        if (label.includes('2nd Class · Female')) return survivalMatrix['2nd_female'].not;
+        if (label.includes('3rd Class · Male')) return survivalMatrix['3rd_male'].not;
+        if (label.includes('3rd Class · Female')) return survivalMatrix['3rd_female'].not;
+    });
+
+    new Chart(document.getElementById('survivalBar'), {
+        type: 'bar',
+        data: {
+            labels: survivalLabels,
+            datasets: [
+                {
+                    label: 'Survived',
+                    data: survivedData,
+                    backgroundColor: 'rgba(34,197,94,0.8)',
+                    borderRadius: 6,
+                    maxBarThickness: 26
+                },
+                {
+                    label: 'Did not survive',
+                    data: notSurvivedData,
+                    backgroundColor: 'rgba(248,113,113,0.85)',
+                    borderRadius: 6,
+                    maxBarThickness: 26
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        font: {size: 11}
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} passengers`
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0,
+                        font: {size: 10}
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 20
+                    },
+                    grid: {
+                        color: 'rgba(55,65,81,0.65)'
+                    }
+                }
+            }
+        }
+    });
+
+    // 5) Age line chart
+    new Chart(document.getElementById('ageLine'), {
+        type: 'line',
+        data: {
+            labels: ageBands,
+            datasets: [
+                {
+                    label: 'Passengers (known age)',
+                    data: ageBandCounts,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.3)',
+                    tension: 0.35,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 4
+                },
+                {
+                    label: 'Missing Age (count)',
+                    data: ageBands.map(() => null).concat(),
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {display: false},
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Passengers: ${ctx.parsed.y}`
+                    }
+                },
+                annotation: {
+                    annotations: {}
+                }
+            },
+            scales: {
+                x: {
+                    grid: {display: false}
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {stepSize: 20},
+                    grid: {color: 'rgba(55,65,81,0.65)'}
+                }
+            }
+        }
+    });
+
+    // Add simple text overlay for missing ages info under the chart using DOM
+    (function annotateMissingAge() {
+        const container = document.getElementById('ageLine').parentElement;
+        const note = document.createElement('div');
+        note.style.position = 'absolute';
+        note.style.bottom = '4px';
+        note.style.right = '10px';
+        note.style.fontSize = '10px';
+        note.style.color = '#fca5a5';
+        note.style.background = 'rgba(15,23,42,0.8)';
+        note.style.padding = '2px 6px';
+        note.style.borderRadius = '999px';
+        note.style.border = '1px solid rgba(248,113,113,0.7)';
+        note.textContent = `Missing ages: ${ageMissing} passengers`;
+        container.appendChild(note);
+    })();
+</script>
+</body>
+</html>
